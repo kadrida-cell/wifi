@@ -5,12 +5,11 @@
   <meta name="theme-color" content="#102d59">
   <title>KADRIDA CELL | Voucher WiFi</title>
   <link rel="stylesheet" href="style.css">
-  <link id="site-favicon" rel="icon" type="image/png" href="logo-kadrida-cell.png">
 </head>
 <body>
 <header class="topbar">
   <a class="brand" href="#">
-    <img class="brand-icon" id="site-logo" src="logo-kadrida-cell.png" alt="Logo KADRIDA CELL">
+    <span class="brand-icon">⌁</span>
     <span>KADRIDA CELL<small>VOUCHER WiFi</small></span>
   </a>
 
@@ -40,7 +39,7 @@
   <section class="how"><div><span class="eyebrow">CARA PEMBELIAN</span><h2>Hanya beberapa langkah</h2></div><div class="steps"><article><b>01</b><h3>Pilih paket</h3><p>Tentukan durasi internet yang sesuai.</p></article><article><b>02</b><h3>Bayar</h3><p>Scan QRIS atau transfer sesuai instruksi.</p></article><article><b>03</b><h3>Konfirmasi</h3><p>Kirim bukti pembayaran dan tunggu admin.</p></article><article><b>04</b><h3>Terima voucher</h3><p>Kode tampil setelah pembayaran disetujui.</p></article></div></section>
   <section class="section order-section" id="cek"><div class="section-heading"><div><span class="eyebrow">PESANAN ANDA</span><h2>Cek status pesanan</h2></div></div><form id="check-form" class="check-form"><input id="check-order" placeholder="Masukkan nomor pesanan" required><button class="button" type="submit">Cek Pesanan</button></form><div id="order-result" aria-live="polite"></div></section>
 </main>
-<footer><div class="brand footer-brand"><img class="brand-icon" id="footer-logo" src="logo-kadrida-cell.png" alt="Logo KADRIDA CELL"><span>KADRIDA CELL<small>VOUCHER WiFi</small></span></div><p>Kami siap melayani.</p><a href="https://wa.me/6287841962805" target="_blank" rel="noopener">WhatsApp 087841962805</a><small>© <span id="year"></span> KADRIDA CELL</small></footer>
+<footer><div class="brand footer-brand"><span class="brand-icon">⌁</span><span>KADRIDA CELL<small>VOUCHER WiFi</small></span></div><p>Kami siap melayani.</p><a href="https://wa.me/6287841962805" target="_blank" rel="noopener">WhatsApp 087841962805</a><small>© <span id="year"></span> KADRIDA CELL</small></footer>
 <div id="modal" class="modal" aria-hidden="true"><div class="modal-card"><button class="close" id="close-modal" aria-label="Tutup">×</button><span class="eyebrow">PEMESANAN VOUCHER</span><h2 id="modal-title">Paket WiFi</h2><p id="modal-price" class="modal-price"></p><form id="order-form"><input type="hidden" id="package-id"><label>Nama pelanggan<input id="customer-name" required maxlength="80" placeholder="Nama Anda"></label><label>Nomor WhatsApp<input id="customer-phone" required inputmode="tel" maxlength="20" placeholder="08xxxxxxxxxx"></label><button class="button full" type="submit">Buat Pesanan</button></form><p class="tiny muted">Pesanan belum dianggap lunas sebelum diverifikasi admin.</p><div id="order-created"></div></div></div>
 <script src="config.js"></script><script src="app.js"></script>
 </body></html>
