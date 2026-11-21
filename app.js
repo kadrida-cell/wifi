@@ -31,7 +31,7 @@ function renderPackages(){
 async function loadPackages(){
   renderPackages();
   if(!apiReady()) return;
-  try{const [r,s]=await Promise.all([apiGet("packages"),apiGet("publicSettings")]);if(r.packages?.length){packages=r.packages;renderPackages();}if(s.settings)publicSettings=s.settings;}catch(e){console.warn(e.message);}
+  try{const [r,s]=await Promise.all([apiGet("packages"),apiGet("publicSettings")]);if(r.packages?.length){packages=r.packages;renderPackages();}if(s.settings){publicSettings=s.settings;applyBranding(s.settings);}}catch(e){console.warn(e.message);}
 }
 function openOrder(p){
   $("package-id").value=p.id;$("modal-title").textContent=p.name+" • "+p.duration;$("modal-price").textContent=rupiah(p.price);
@@ -59,3 +59,5 @@ $("check-form").addEventListener("submit",async e=>{
 });
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 $("year").textContent=new Date().getFullYear();loadPackages();
+
+function applyBranding(s){if(s.logoUrl){["site-logo","footer-logo"].forEach(id=>{const el=$(id);if(el)el.src=s.logoUrl;});}if(s.faviconUrl){const f=$("site-favicon");if(f)f.href=s.faviconUrl;}}
