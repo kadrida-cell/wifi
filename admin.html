@@ -1,12 +1,46 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#102d59"><title>Admin | KADRIDA CELL</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="admin.css"></head>
-<body class="admin-body"><header class="topbar"><a class="brand" href="index.html"><span class="brand-icon">⌁</span><span>KADRIDA CELL<small>ADMINISTRATOR</small></span></a><a class="wa-link" href="index.html">Lihat Website</a></header>
-<main class="admin-wrap"><section id="login-panel" class="admin-login"><span class="eyebrow">AREA TERBATAS</span><h1>Login Administrator</h1><p class="muted">Masuk untuk mengelola stok, pesanan, pengaturan pembayaran, dan laporan.</p><form id="login-form"><label>PIN Administrator<input id="admin-pin" type="password" required autocomplete="current-password" placeholder="Masukkan PIN admin"></label><button class="button full">Masuk Dashboard</button></form><p id="login-error" class="error"></p></section>
-<section id="dashboard" hidden><div class="admin-title"><div><span class="eyebrow">PANEL PENGELOLAAN</span><h1>Dashboard Admin</h1><p class="muted">Kelola transaksi dan stok voucher KADRIDA CELL.</p></div><button id="logout" class="button button-outline">Keluar</button></div>
-<nav class="tabs"><button class="tab active" data-tab="overview">Ringkasan</button><button class="tab" data-tab="orders">Pesanan</button><button class="tab" data-tab="stock">Stok Voucher</button><button class="tab" data-tab="settings">Pengaturan</button><button class="tab" data-tab="reports">Laporan</button></nav>
-<section class="tab-panel" id="tab-overview"><div class="stats-grid" id="stats"></div><div class="panel"><div class="panel-head"><h2>Stok per Paket</h2><button class="button small-button" id="refresh-summary">Perbarui</button></div><div class="table-wrap"><table><thead><tr><th>Paket</th><th>Tersedia</th><th>Terjual</th></tr></thead><tbody id="stock-summary"></tbody></table></div></div></section>
-<section class="tab-panel" id="tab-orders" hidden><div class="panel"><div class="panel-head"><h2>Daftar Pesanan Terbaru</h2><button class="button small-button" id="refresh-orders">Muat Ulang</button></div><div class="table-wrap"><table><thead><tr><th>No. Pesanan</th><th>Pelanggan</th><th>Paket</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="orders-table"></tbody></table></div></div></section>
-<section class="tab-panel" id="tab-stock" hidden><div class="panel"><h2>Tambah Stok Voucher</h2><p class="muted">Tempel satu kode per baris. Sistem akan mengabaikan kode duplikat dan mencatat paketnya.</p><form id="stock-form"><label>Pilih Paket<select id="stock-package" required></select></label><label>Daftar Kode Voucher<textarea id="voucher-codes" rows="8" required placeholder="KODE001&#10;KODE002&#10;KODE003"></textarea></label><button class="button">Simpan Stok Voucher</button></form><p id="stock-message" class="success"></p></div><div class="panel"><h2>Stok Tersedia</h2><div class="table-wrap"><table><thead><tr><th>Paket</th><th>Kode</th><th>Status</th></tr></thead><tbody id="stock-table"></tbody></table></div></div></section>
-<section class="tab-panel" id="tab-settings" hidden><div class="panel"><h2>Pengaturan Toko & Pembayaran</h2><form id="settings-form"><label>Nama Toko<input id="setting-store" required></label><label>Slogan<input id="setting-tagline"></label><label>WhatsApp Admin<input id="setting-wa" inputmode="tel"></label><label>URL Gambar QRIS<input id="setting-qris" placeholder="https://.../qris-kadrida.png"></label><p class="tiny muted">Unggah gambar QRIS ke repository GitHub (root), lalu masukkan URL gambar GitHub Pages, misalnya https://username.github.io/nama-repo/qris-kadrida.png. QRIS tidak disimpan sebagai data rahasia di Sheets.</p><label>Instruksi pembayaran<textarea id="setting-instructions" rows="4" placeholder="Scan QRIS atau transfer ke rekening..."></textarea></label><button class="button">Simpan Pengaturan</button></form><p id="settings-message" class="success"></p><div class="qris-preview" id="qris-preview"></div></div></section>
-<section class="tab-panel" id="tab-reports" hidden><div class="panel"><div class="panel-head"><h2>Laporan Penjualan</h2><button class="button small-button" id="export-csv">Unduh CSV</button></div><div class="stats-grid" id="report-stats"></div><p class="tiny muted">Laporan berdasarkan seluruh transaksi yang tersimpan. CSV dapat dibuka menggunakan Excel.</p><div class="table-wrap"><table><thead><tr><th>Periode</th><th>Transaksi Lunas</th><th>Omzet</th></tr></thead><tbody id="report-table"></tbody></table></div></div></section>
-<div id="admin-message" role="status"></div></section></main><script src="config.js"></script><script src="admin.js"></script></body></html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102d59">
+  <title>KADRIDA CELL | Voucher WiFi</title>
+  <link rel="stylesheet" href="style.css">
+  <link id="site-favicon" rel="icon" type="image/png" href="logo-kadrida-cell.png">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#">
+    <img class="brand-icon" id="site-logo" src="logo-kadrida-cell.png" alt="Logo KADRIDA CELL">
+    <span>KADRIDA CELL<small>VOUCHER WiFi</small></span>
+  </a>
+
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <a href="admin.html"
+       style="display:inline-flex; align-items:center; justify-content:center;
+       padding:12px 20px; border-radius:16px; background:#071B3A;
+       color:#FFFFFF; text-decoration:none; font-weight:600;">
+       Admin
+    </a>
+
+    <a href="https://wa.me/6287841962805"
+       target="_blank" rel="noopener"
+       style="display:inline-flex; align-items:center; justify-content:center;
+       padding:12px 20px; border-radius:16px; background:#071B3A;
+       color:#FFFFFF; text-decoration:none; font-weight:600;">
+       Bantuan
+    </a>
+  </div>
+</header>
+<main>
+  <section class="hero">
+    <div class="hero-copy"><span class="eyebrow">INTERNET PRAKTIS & TERJANGKAU</span><h1>Terhubung lebih mudah dengan <em>voucher WiFi.</em></h1><p>Kami siap melayani. Pilih paket internet, lakukan pembayaran, lalu tunggu admin memverifikasi pesanan Anda.</p><a class="button button-light" href="#paket">Lihat Paket WiFi <span>↓</span></a></div>
+    <div class="hero-art"><div class="wifi-orbit">⌁</div><div class="hero-card"><span>HOTSPOT VOUCHER</span><strong>ONLINE</strong><small>Cepat • Mudah • Praktis</small></div></div>
+  </section>
+  <section class="section" id="paket"><div class="section-heading"><div><span class="eyebrow">PILIH SESUAI KEBUTUHAN</span><h2>Paket WiFi</h2></div><span class="muted">Harga dalam Rupiah</span></div><div id="package-grid" class="package-grid"><div class="loading">Memuat paket...</div></div></section>
+  <section class="how"><div><span class="eyebrow">CARA PEMBELIAN</span><h2>Hanya beberapa langkah</h2></div><div class="steps"><article><b>01</b><h3>Pilih paket</h3><p>Tentukan durasi internet yang sesuai.</p></article><article><b>02</b><h3>Bayar</h3><p>Scan QRIS atau transfer sesuai instruksi.</p></article><article><b>03</b><h3>Konfirmasi</h3><p>Kirim bukti pembayaran dan tunggu admin.</p></article><article><b>04</b><h3>Terima voucher</h3><p>Kode tampil setelah pembayaran disetujui.</p></article></div></section>
+  <section class="section order-section" id="cek"><div class="section-heading"><div><span class="eyebrow">PESANAN ANDA</span><h2>Cek status pesanan</h2></div></div><form id="check-form" class="check-form"><input id="check-order" placeholder="Masukkan nomor pesanan" required><button class="button" type="submit">Cek Pesanan</button></form><div id="order-result" aria-live="polite"></div></section>
+</main>
+<footer><div class="brand footer-brand"><img class="brand-icon" id="footer-logo" src="logo-kadrida-cell.png" alt="Logo KADRIDA CELL"><span>KADRIDA CELL<small>VOUCHER WiFi</small></span></div><p>Kami siap melayani.</p><a href="https://wa.me/6287841962805" target="_blank" rel="noopener">WhatsApp 087841962805</a><small>© <span id="year"></span> KADRIDA CELL</small></footer>
+<div id="modal" class="modal" aria-hidden="true"><div class="modal-card"><button class="close" id="close-modal" aria-label="Tutup">×</button><span class="eyebrow">PEMESANAN VOUCHER</span><h2 id="modal-title">Paket WiFi</h2><p id="modal-price" class="modal-price"></p><form id="order-form"><input type="hidden" id="package-id"><label>Nama pelanggan<input id="customer-name" required maxlength="80" placeholder="Nama Anda"></label><label>Nomor WhatsApp<input id="customer-phone" required inputmode="tel" maxlength="20" placeholder="08xxxxxxxxxx"></label><button class="button full" type="submit">Buat Pesanan</button></form><p class="tiny muted">Pesanan belum dianggap lunas sebelum diverifikasi admin.</p><div id="order-created"></div></div></div>
+<script src="config.js"></script><script src="app.js"></script>
+</body></html>
