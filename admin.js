@@ -1,24 +1,459 @@
-const A=id=>document.getElementById(id);let adminToken=sessionStorage.getItem("kdr_admin_token")||"";let adminPackages=[];let latestOrders=[];
-function api(action,params={}){const u=new URL(window.APP_CONFIG.API_URL);u.searchParams.set("action",action);Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));return new Promise((resolve,reject)=>{const cb="acb_"+Math.random().toString(36).slice(2),s=document.createElement("script"),t=setTimeout(()=>{clean();reject(Error("Server tidak merespons."));},18000);function clean(){delete window[cb];s.remove();clearTimeout(t)}window[cb]=d=>{clean();d.ok===false?reject(Error(d.error||"Gagal")):resolve(d)};s.src=u.toString()+"&callback="+cb;s.onerror=()=>{clean();reject(Error("Tidak dapat menghubungi server."))};document.body.appendChild(s)})}
-function msg(s){A("admin-message").textContent=s;A("admin-message").style.display="block";setTimeout(()=>A("admin-message").style.display="none",3500)}function money(n){return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n||0))}function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-A("login-form").onsubmit=async e=>{e.preventDefault();try{const r=await api("adminLogin",{pin:A("admin-pin").value});adminToken=r.token;sessionStorage.setItem("kdr_admin_token",adminToken);A("login-error").textContent="";showDashboard();}catch(err){A("login-error").textContent=err.message}};
-function showDashboard(){A("login-panel").hidden=true;A("dashboard").hidden=false;loadAll()}
-A("logout").onclick=()=>{sessionStorage.removeItem("kdr_admin_token");adminToken="";A("dashboard").hidden=true;A("login-panel").hidden=false;A("admin-pin").value=""};
-document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".tab-panel").forEach(x=>x.hidden=x.id!=="tab-"+b.dataset.tab);if(b.dataset.tab==="orders")loadOrders();if(b.dataset.tab==="stock")loadStock();if(b.dataset.tab==="settings")loadSettings();if(b.dataset.tab==="reports")loadReports()});
-async function loadAll(){try{const [s,p]=await Promise.all([api("adminSummary",{token:adminToken}),api("packages")]);adminPackages=p.packages||[];A("stats").innerHTML=stat("Total Pesanan",s.summary.totalOrders)+stat("Pesanan Lunas",s.summary.paid)+stat("Menunggu",s.summary.pending)+stat("Omzet",money(s.summary.revenue));A("stock-summary").innerHTML=adminPackages.map(p=>`<tr><td>${esc(p.name)}</td><td>${s.summary.stock[p.id]?.available||0}</td><td>${s.summary.stock[p.id]?.sold||0}</td></tr>`).join("");A("stock-package").innerHTML=adminPackages.map(p=>`<option value="${esc(p.id)}">${esc(p.name)} — ${money(p.price)}</option>`).join("");loadOrders()}catch(e){msg(e.message);if(/token|login|admin/i.test(e.message))A("logout").click()}}
-function stat(label,value){return `<div class="stat"><small>${label}</small><strong>${value}</strong></div>`}
-async function loadOrders(){try{const r=await api("adminOrders",{token:adminToken});latestOrders=r.orders||[];A("orders-table").innerHTML=latestOrders.map(o=>`<tr><td><b>${esc(o.orderId)}</b><br><small>${new Date(o.date).toLocaleString("id-ID")}</small></td><td>${esc(o.name)}<br>${esc(o.phone)}</td><td>${esc(o.packageName)}</td><td>${money(o.price)}</td><td><span class="pill-status ${esc(o.status)}">${esc(o.status)}</span></td><td>${o.status==="MENUNGGU"?`<button class="action-btn" data-approve="${esc(o.orderId)}">Setujui & Berikan Kode</button><button class="action-btn reject-btn" data-reject="${esc(o.orderId)}">Tolak</button>`:o.voucherCode?`<small>${esc(o.voucherCode)}</small>`:"—"}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Belum ada pesanan.</td></tr>'}catch(e){msg(e.message)}}
-A("orders-table").onclick=async e=>{const ok=e.target.dataset.approve, no=e.target.dataset.reject;if(ok&&confirm("Pastikan pembayaran sudah diterima. Setujui pesanan dan alokasikan satu voucher?")){try{const r=await api("adminApprove",{token:adminToken,orderId:ok});msg("Berhasil. Kode voucher: "+r.voucherCode);loadAll()}catch(err){msg(err.message)}}if(no&&confirm("Tolak pesanan ini?")){const reason=prompt("Alasan penolakan:","Pembayaran belum diterima");if(reason!==null)try{await api("adminReject",{token:adminToken,orderId:no,reason});msg("Pesanan ditolak.");loadAll()}catch(err){msg(err.message)}}};
-A("refresh-orders").onclick=loadOrders;A("refresh-summary").onclick=loadAll;
-async function loadStock(){try{const r=await api("adminStock",{token:adminToken});A("stock-table").innerHTML=r.vouchers.map(v=>`<tr><td>${esc(v.packageName)}</td><td>${esc(v.code)}</td><td>${esc(v.status)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">Belum ada stok voucher.</td></tr>'}catch(e){msg(e.message)}}
-A("stock-form").onsubmit=async e=>{e.preventDefault();const btn=e.submitter;btn.disabled=true;btn.textContent="Menyimpan...";try{const lines=A("voucher-codes").value.split(/[\r\n,;\t ]+/).map(x=>x.trim()).filter(Boolean);let added=0,skipped=0;for(let i=0;i<lines.length;i+=20){const r=await api("adminImportVouchers",{token:adminToken,packageId:A("stock-package").value,codes:lines.slice(i,i+20).join("\n")});added+=r.added;skipped+=r.skipped;}A("stock-message").textContent=`Berhasil ditambahkan: ${added}; duplikat/kosong dilewati: ${skipped}.`;A("voucher-codes").value="";loadStock();loadAll()}catch(err){msg(err.message)}finally{btn.disabled=false;btn.textContent="Simpan Stok Voucher"}};
-async function loadSettings(){try{const r=await api("adminSettings",{token:adminToken});const s=r.settings;A("setting-store").value=s.storeName||"KADRIDA CELL";A("setting-tagline").value=s.tagline||"Kami siap melayani.";A("setting-wa").value=s.whatsapp||"";A("setting-qris").value=s.qrisUrl||"";A("setting-instructions").value=s.paymentInstructions||"";A("setting-logo").value=s.logoUrl||"";A("setting-favicon").value=s.faviconUrl||"";A("logo-preview").innerHTML=s.logoUrl?`<img src="${esc(s.logoUrl)}" alt="Logo website" style="max-width:150px;max-height:100px;object-fit:contain">`:"";A("favicon-preview").innerHTML=s.faviconUrl?`<img src="${esc(s.faviconUrl)}" alt="Favicon" style="width:48px;height:48px;object-fit:contain">`:"";A("qris-preview").innerHTML=s.qrisUrl?`<p class="muted">Pratinjau QRIS</p><img src="${esc(s.qrisUrl)}" alt="QRIS KADRIDA CELL">`:""}catch(e){msg(e.message)}}
-A("settings-form").onsubmit=async e=>{e.preventDefault();try{await api("adminSaveSettings",{token:adminToken,storeName:A("setting-store").value,tagline:A("setting-tagline").value,whatsapp:A("setting-wa").value,qrisUrl:A("setting-qris").value,paymentInstructions:A("setting-instructions").value,logoUrl:A("setting-logo").value,faviconUrl:A("setting-favicon").value});A("settings-message").textContent="Pengaturan berhasil disimpan.";loadSettings()}catch(err){msg(err.message)}};
-async function loadReports(){try{const r=await api("adminReport",{token:adminToken});A("report-stats").innerHTML=stat("Total Transaksi Lunas",r.totalPaid)+stat("Total Omzet",money(r.totalRevenue));A("report-table").innerHTML=r.monthly.map(x=>`<tr><td>${esc(x.period)}</td><td>${x.count}</td><td>${money(x.revenue)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">Belum ada transaksi lunas.</td></tr>'}catch(e){msg(e.message)}}
-A("export-csv").onclick=()=>{const rows=[["Nomor Pesanan","Tanggal","Nama","WhatsApp","Paket","Harga","Status","Kode Voucher"],...latestOrders.map(o=>[o.orderId,o.date,o.name,o.phone,o.packageName,o.price,o.status,o.voucherCode||""])];const csv=rows.map(r=>r.map(x=>'"'+String(x??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download="laporan-kadrida-cell.csv";a.click();URL.revokeObjectURL(a.href)};
-if(adminToken)showDashboard();
 
-// Upload logo ke Google Drive melalui endpoint doPost Apps Script.
-let logoUploadPending=null;window.addEventListener("message",e=>{if(e.data&&typeof e.data==="object"&&"ok" in e.data&&logoUploadPending){const p=logoUploadPending;logoUploadPending=null;if(e.data.ok){A(p.urlField).value=e.data.url;A(p.preview).innerHTML=`<img src="${esc(e.data.url)}" alt="Pratinjau logo" style="max-width:150px;max-height:100px;object-fit:contain">`;A("logo-message").textContent="Upload berhasil. Klik Simpan Pengaturan untuk menyimpan semua perubahan.";}else A("logo-message").textContent=e.data.error||"Upload gagal.";}});
-function uploadLogo(inputId,type,urlField,preview){A(inputId).addEventListener("change",()=>{const f=A(inputId).files[0];if(!f)return;if(f.size>2*1024*1024){A("logo-message").textContent="Ukuran file maksimal 2 MB.";A(inputId).value="";return;}if(!["image/png","image/jpeg","image/webp"].includes(f.type)){A("logo-message").textContent="Format harus PNG, JPG, atau WebP.";A(inputId).value="";return;}const reader=new FileReader();reader.onload=()=>{const data=String(reader.result).split(",")[1];const form=document.createElement("form");form.method="POST";form.action=window.APP_CONFIG.API_URL;form.target="logo-upload-frame";[["token",adminToken],["fileName",f.name],["mimeType",f.type],["fileData",data],["logoType",type]].forEach(([k,v])=>{const i=document.createElement("input");i.type="hidden";i.name=k;i.value=v;form.appendChild(i)});logoUploadPending={urlField,preview};document.body.appendChild(form);form.submit();form.remove();A("logo-message").textContent="Mengunggah logo...";};reader.readAsDataURL(f);});}
-uploadLogo("upload-logo","logo","setting-logo","logo-preview");uploadLogo("upload-favicon","favicon","setting-favicon","favicon-preview");
+const A = id => document.getElementById(id);
+
+let adminToken = sessionStorage.getItem("kdr_admin_token") || "";
+let adminPackages = [];
+let latestOrders = [];
+
+function api(action, params = {}) {
+  const u = new URL(window.APP_CONFIG.API_URL);
+  u.searchParams.set("action", action);
+
+  Object.entries(params).forEach(([k, v]) => {
+    u.searchParams.set(k, v);
+  });
+
+  return new Promise((resolve, reject) => {
+    const cb = "acb_" + Math.random().toString(36).slice(2);
+    const s = document.createElement("script");
+
+    const t = setTimeout(() => {
+      clean();
+      reject(Error("Server tidak merespons."));
+    }, 18000);
+
+    function clean() {
+      delete window[cb];
+      s.remove();
+      clearTimeout(t);
+    }
+
+    window[cb] = d => {
+      clean();
+      d.ok === false
+        ? reject(Error(d.error || "Gagal"))
+        : resolve(d);
+    };
+
+    s.src = u.toString() + "&callback=" + cb;
+    s.onerror = () => {
+      clean();
+      reject(Error("Tidak dapat menghubungi server."));
+    };
+
+    document.body.appendChild(s);
+  });
+}
+
+function msg(s) {
+  A("admin-message").textContent = s;
+  A("admin-message").style.display = "block";
+  setTimeout(() => {
+    A("admin-message").style.display = "none";
+  }, 3500);
+}
+
+function money(n) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0
+  }).format(Number(n || 0));
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
+}
+
+// LOGIN ADMIN
+A("login-form").onsubmit = async e => {
+  e.preventDefault();
+
+  try {
+    const r = await api("adminLogin", {
+      pin: A("admin-pin").value
+    });
+
+    adminToken = r.token;
+    sessionStorage.setItem("kdr_admin_token", adminToken);
+
+    A("login-error").textContent = "";
+    showDashboard();
+
+  } catch (err) {
+    A("login-error").textContent = err.message;
+  }
+};
+
+function showDashboard() {
+  A("login-panel").hidden = true;
+  A("dashboard").hidden = false;
+  loadAll();
+}
+
+// LOGOUT
+A("logout").onclick = () => {
+  sessionStorage.removeItem("kdr_admin_token");
+  adminToken = "";
+
+  A("dashboard").hidden = true;
+  A("login-panel").hidden = false;
+  A("admin-pin").value = "";
+};
+
+// NAVIGASI TAB
+document.querySelectorAll("[data-tab]").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll("[data-tab]").forEach(x => {
+      x.classList.toggle("active", x === b);
+    });
+
+    document.querySelectorAll(".tab-panel").forEach(x => {
+      x.hidden = x.id !== "tab-" + b.dataset.tab;
+    });
+
+    if (b.dataset.tab === "orders") loadOrders();
+    if (b.dataset.tab === "stock") loadStock();
+    if (b.dataset.tab === "settings") loadSettings();
+    if (b.dataset.tab === "reports") loadReports();
+  };
+});
+
+// RINGKASAN DASHBOARD
+async function loadAll() {
+  try {
+    const [s, p] = await Promise.all([
+      api("adminSummary", { token: adminToken }),
+      api("packages")
+    ]);
+
+    adminPackages = p.packages || [];
+
+    A("stats").innerHTML =
+      stat("Total Pesanan", s.summary.totalOrders) +
+      stat("Pesanan Lunas", s.summary.paid) +
+      stat("Menunggu", s.summary.pending) +
+      stat("Omzet", money(s.summary.revenue));
+
+    A("stock-summary").innerHTML = adminPackages.map(p =>
+      `<tr>
+        <td>${esc(p.name)}</td>
+        <td>${s.summary.stock[p.id]?.available || 0}</td>
+        <td>${s.summary.stock[p.id]?.sold || 0}</td>
+      </tr>`
+    ).join("");
+
+    A("stock-package").innerHTML = adminPackages.map(p =>
+      `<option value="${esc(p.id)}">
+        ${esc(p.name)} — ${money(p.price)}
+      </option>`
+    ).join("");
+
+    loadOrders();
+
+  } catch (e) {
+    // Jangan otomatis logout ketika data gagal dimuat.
+    msg("Gagal memuat dashboard: " + e.message);
+  }
+}
+
+function stat(label, value) {
+  return `<div class="stat">
+    <small>${label}</small>
+    <strong>${value}</strong>
+  </div>`;
+}
+
+// DAFTAR PESANAN
+async function loadOrders() {
+  try {
+    const r = await api("adminOrders", {
+      token: adminToken
+    });
+
+    latestOrders = r.orders || [];
+
+    A("orders-table").innerHTML = latestOrders.map(o =>
+      `<tr>
+        <td>
+          <b>${esc(o.orderId)}</b><br>
+          <small>${new Date(o.date).toLocaleString("id-ID")}</small>
+        </td>
+        <td>
+          ${esc(o.name)}<br>
+          ${esc(o.phone)}
+        </td>
+        <td>${esc(o.packageName)}</td>
+        <td>${money(o.price)}</td>
+        <td>
+          <span class="pill-status ${esc(o.status)}">
+            ${esc(o.status)}
+          </span>
+        </td>
+        <td>
+          ${
+            o.status === "MENUNGGU"
+              ? `<button class="action-btn" data-approve="${esc(o.orderId)}">
+                  Setujui & Berikan Kode
+                </button>
+                <button class="action-btn reject-btn" data-reject="${esc(o.orderId)}">
+                  Tolak
+                </button>`
+              : o.voucherCode
+                ? `<small>${esc(o.voucherCode)}</small>`
+                : "—"
+          }
+        </td>
+      </tr>`
+    ).join("") ||
+    '<tr><td colspan="6" class="empty">Belum ada pesanan.</td></tr>';
+
+  } catch (e) {
+    msg(e.message);
+  }
+}
+
+// SETUJUI ATAU TOLAK PESANAN
+A("orders-table").onclick = async e => {
+  const ok = e.target.dataset.approve;
+  const no = e.target.dataset.reject;
+
+  if (ok && confirm(
+    "Pastikan pembayaran sudah diterima. Setujui pesanan dan alokasikan satu voucher?"
+  )) {
+    try {
+      const r = await api("adminApprove", {
+        token: adminToken,
+        orderId: ok
+      });
+
+      msg("Berhasil. Kode voucher: " + r.voucherCode);
+      loadAll();
+
+    } catch (err) {
+      msg(err.message);
+    }
+  }
+
+  if (no && confirm("Tolak pesanan ini?")) {
+    const reason = prompt(
+      "Alasan penolakan:",
+      "Pembayaran belum diterima"
+    );
+
+    if (reason !== null) {
+      try {
+        await api("adminReject", {
+          token: adminToken,
+          orderId: no,
+          reason
+        });
+
+        msg("Pesanan ditolak.");
+        loadAll();
+
+      } catch (err) {
+        msg(err.message);
+      }
+    }
+  }
+};
+
+A("refresh-orders").onclick = loadOrders;
+A("refresh-summary").onclick = loadAll;
+
+// STOK VOUCHER
+async function loadStock() {
+  try {
+    const r = await api("adminStock", {
+      token: adminToken
+    });
+
+    A("stock-table").innerHTML = r.vouchers.map(v =>
+      `<tr>
+        <td>${esc(v.packageName)}</td>
+        <td>${esc(v.code)}</td>
+        <td>${esc(v.status)}</td>
+      </tr>`
+    ).join("") ||
+    '<tr><td colspan="3" class="empty">Belum ada stok voucher.</td></tr>';
+
+  } catch (e) {
+    msg(e.message);
+  }
+}
+
+// TAMBAH STOK VOUCHER
+A("stock-form").onsubmit = async e => {
+  e.preventDefault();
+
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.textContent = "Menyimpan...";
+
+  try {
+    const lines = A("voucher-codes").value
+      .split(/[\r\n,;\t ]+/)
+      .map(x => x.trim())
+      .filter(Boolean);
+
+    let added = 0;
+    let skipped = 0;
+
+    for (let i = 0; i < lines.length; i += 20) {
+      const r = await api("adminImportVouchers", {
+        token: adminToken,
+        packageId: A("stock-package").value,
+        codes: lines.slice(i, i + 20).join("\n")
+      });
+
+      added += r.added;
+      skipped += r.skipped;
+    }
+
+    A("stock-message").textContent =
+      `Berhasil ditambahkan: ${added}; duplikat/kosong dilewati: ${skipped}.`;
+
+    A("voucher-codes").value = "";
+
+    loadStock();
+    loadAll();
+
+  } catch (err) {
+    msg(err.message);
+
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Simpan Stok Voucher";
+  }
+};
+
+// PENGATURAN TOKO DAN QRIS
+async function loadSettings() {
+  try {
+    const r = await api("adminSettings", {
+      token: adminToken
+    });
+
+    const s = r.settings;
+
+    A("setting-store").value = s.storeName || "KADRIDA CELL";
+    A("setting-tagline").value = s.tagline || "Kami siap melayani.";
+    A("setting-wa").value = s.whatsapp || "";
+    A("setting-qris").value = s.qrisUrl || "";
+    A("setting-instructions").value = s.paymentInstructions || "";
+
+    A("qris-preview").innerHTML = s.qrisUrl
+      ? `<p class="muted">Pratinjau QRIS</p>
+         <img src="${esc(s.qrisUrl)}" alt="QRIS KADRIDA CELL">`
+      : "";
+
+  } catch (e) {
+    msg(e.message);
+  }
+}
+
+// SIMPAN PENGATURAN
+A("settings-form").onsubmit = async e => {
+  e.preventDefault();
+
+  try {
+    await api("adminSaveSettings", {
+      token: adminToken,
+      storeName: A("setting-store").value,
+      tagline: A("setting-tagline").value,
+      whatsapp: A("setting-wa").value,
+      qrisUrl: A("setting-qris").value,
+      paymentInstructions: A("setting-instructions").value
+    });
+
+    A("settings-message").textContent =
+      "Pengaturan berhasil disimpan.";
+
+    loadSettings();
+
+  } catch (err) {
+    msg(err.message);
+  }
+};
+
+// LAPORAN
+async function loadReports() {
+  try {
+    const r = await api("adminReport", {
+      token: adminToken
+    });
+
+    A("report-stats").innerHTML =
+      stat("Total Transaksi Lunas", r.totalPaid) +
+      stat("Total Omzet", money(r.totalRevenue));
+
+    A("report-table").innerHTML = r.monthly.map(x =>
+      `<tr>
+        <td>${esc(x.period)}</td>
+        <td>${x.count}</td>
+        <td>${money(x.revenue)}</td>
+      </tr>`
+    ).join("") ||
+    '<tr><td colspan="3" class="empty">Belum ada transaksi lunas.</td></tr>';
+
+  } catch (e) {
+    msg(e.message);
+  }
+}
+
+// EKSPOR LAPORAN CSV
+A("export-csv").onclick = () => {
+  const rows = [
+    [
+      "Nomor Pesanan",
+      "Tanggal",
+      "Nama",
+      "WhatsApp",
+      "Paket",
+      "Harga",
+      "Status",
+      "Kode Voucher"
+    ],
+    ...latestOrders.map(o => [
+      o.orderId,
+      o.date,
+      o.name,
+      o.phone,
+      o.packageName,
+      o.price,
+      o.status,
+      o.voucherCode || ""
+    ])
+  ];
+
+  const csv = rows.map(r =>
+    r.map(x =>
+      '"' + String(x ?? "").replace(/"/g, '""') + '"'
+    ).join(",")
+  ).join("\r\n");
+
+  const a = document.createElement("a");
+
+  a.href = URL.createObjectURL(
+    new Blob(["\ufeff" + csv], {
+      type: "text/csv;charset=utf-8"
+    })
+  );
+
+  a.download = "laporan-kadrida-cell.csv";
+  a.click();
+
+  URL.revokeObjectURL(a.href);
+};
+
+// MUAT DASHBOARD JIKA TOKEN MASIH ADA
+if (adminToken) {
+  showDashboard();
+}
